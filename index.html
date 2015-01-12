@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="tetris.js"></script>
+</head>
+<body>
+    <canvas height='540' width='300' id='example'>Обновите браузер</canvas>
+
+    <script>
+
+        var example = document.getElementById("example");
+        var ctx = example.getContext('2d');
+
+        o = new O({context: ctx});
+        o.drawAllRect();
+
+        var done = false;
+
+        function move() {
+
+            var flag = o.checkBottom();
+
+            if (!flag) {
+                o.move();
+                setTimeout(null,1000);
+            } else {
+
+                o.updateWell()
+
+            }
+
+        }
+
+//        setInterval(move, )
+
+    </script>
+</body>
+</html>
