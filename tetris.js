@@ -15,13 +15,18 @@ function Rect(params) {
 
     this.draw = function()
     {
-        this.context.fillStyle = this.color;
-        this.context.fillRect(this.x, this.y, this.width, this.height);
+        if (!this.isEmpty) {
+            this.context.fillStyle = this.color;
+            this.context.fillRect(this.x, this.y, this.width, this.height);
+        }
     };
 
     this.clear = function() {
 
-        this.context.clearRect(this.x, this.y, this.width, this.height);
+        if (!this.isEmpty) {
+
+            this.context.clearRect(this.x, this.y, this.width, this.height);
+        }
 
     }
 }
@@ -30,7 +35,8 @@ function Figure(params) {
 
 }
 
-
+Figure.prototype.absoluteX = 4;
+Figure.prototype.absoluteY = 0;
 
 Figure.prototype.well = [];
 
@@ -41,16 +47,13 @@ for (var i = 0; i < 18; i++) {
     Figure.prototype.well.push(tmp);
 }
 
-Figure.prototype.updateWell = function(){
+Figure.prototype.updateWell = function(i,j,data){
 
     Figure.prototype.well[i][j] = data;
 
 };
 
-Figure.prototype.offsetVertical = 0;
-Figure.prototype.offsetHorizontal = 0;
 
-Figure.prototype.mediana = 4;
 
 Figure.prototype.generateMatrix = function() {
 
@@ -64,35 +67,172 @@ Figure.prototype.generateMatrix = function() {
     }
 };
 
-Figure.prototype.rotate = function (){
+Figure.prototype.reset = function(){
 
-    this.clearAllRect();
+    this.absoluteX = 4;
+    this.absoluteY = 0;
 
-    var rotatedMatrix = [];
-    for (var x = 0; x < 4; x++) {
-        for (var y = 0, tmp = []; y < 4; y++) {
-            tmp.push(null);
+};
+
+
+function popCol(matrix){
+
+    for (var i=0; i<matrix.length;i++){
+        matrix[i].pop();
+    }
+}
+
+function shiftCol(matrix){
+
+    for (var i=0; i<matrix.length;i++){
+        matrix[i].shift();
+    }
+}
+
+function pushCol(matrix, col){
+
+    for (var i=0; i<matrix.length;i++){
+        matrix[i].push(col[i]);
+    }
+}
+
+function unshiftCol(matrix, col){
+
+    for (var i=0; i<matrix.length;i++){
+        matrix[i].unshift(col[i]);
+    }
+}
+
+
+
+
+
+Figure.prototype.normalize = function (){
+
+    var i,j;
+    if (this.matrix[0][0]){
+
+        for (i = 3; i>=0; i--){
+            if (!this.matrix[i][0]){
+
+                this.matrix.pop();
+
+            } else break;
+
         }
-        rotatedMatrix.push(tmp);
+
+        for (j = 3; j>=0; j--){
+
+            if (!this.matrix[0][j]){
+
+                popCol(this.matrix);
+
+            } else break;
+
+        }
+
+        while (3 - j){
+
+            pushCol(this.matrix, [null, null, null, null ]);
+            j++;
+
+        }
+
+        while(3 - i) {
+
+            this.matrix.unshift([null, null, null, null ]);
+            i++;
+
+        }
+
+
+
+    } else if (this.matrix[0][3]){
+
+        for (i = 3; i>=0; i--){
+            if (!this.matrix[i][3]){
+
+                this.matrix.pop();
+
+            } else break;
+
+        }
+
+        for (j = 0; j<4; j++){
+            if (!this.matrix[0][0]){
+
+                shiftCol(this.matrix);
+
+            } else break;
+
+        }
+
+        while (j){
+
+            pushCol(this.matrix, [null, null, null, null ]);
+            j--;
+
+        }
+
+        while(3 - i) {
+
+            this.matrix.unshift([null, null, null, null ]);
+            i++;
+
+        }
+
+    } else if (this.matrix[3][3]){
+
+        for (i = 0; i<4; i++){
+            if (!this.matrix[0][0]){
+
+                this.matrix.shift();
+
+            } else break;
+
+        }
+
+        for (j = 0; j<4; j++){
+            if (!this.matrix[0][0]){
+
+                shiftCol(this.matrix);
+
+            } else break;
+
+        }
+
+        while (j){
+
+            pushCol(this.matrix, [null, null, null, null ]);
+            j--;
+
+        }
+
+        while(i) {
+
+            this.matrix.unshift([null, null, null, null ]);
+            i--;
+
+        }
+
     }
 
-    for (var i=0; i<this.matrix.length;i++){
-        for (var j=0; j<this.matrix[i].length; j++){
-            rotatedMatrix[j][this.matrix.length - i - 1] = this.matrix[i][j];
+};
+Figure.prototype.refreshRectCoords = function(){
+
+    for (var i = 0; i < 4; i++) {
+        for (var j = 0; j < 4; j++) {
             if (this.matrix[i][j]){
 
-                rotatedMatrix[j][this.matrix.length - i - 1].y = 0 + j * 30 + this.offsetVertical;
-                rotatedMatrix[j][this.matrix.length - i - 1].x = 0 + (this.matrix.length - i - 1) * 30 + this.offsetHorizontal;
+                this.matrix[i][j].x = this.absoluteX * 30 + j * 30;
+                this.matrix[i][j].y = this.absoluteY * 30 + i * 30;
 
             }
         }
     }
 
-    this.matrix = rotatedMatrix;
-
-    this.drawAllRect();
-
 };
+
 
 Figure.prototype.drawAllRect = function(){
 
@@ -122,79 +262,112 @@ Figure.prototype.clearAllRect = function(){
 
 };
 
-Figure.prototype.toWell = function(){
 
-};
 
-Figure.prototype.move = function(offset){
-
-    offset = offset || 30;
-
-    this.offsetVertical += offset;
-
+Figure.prototype.rotate = function (){
 
     this.clearAllRect();
 
+    var rotatedMatrix = [];
+    for (var x = 0; x < 4; x++) {
+        for (var y = 0, tmp = []; y < 4; y++) {
+            tmp.push(null);
+        }
+        rotatedMatrix.push(tmp);
+    }
+
     for (var i=0; i<this.matrix.length;i++){
         for (var j=0; j<this.matrix[i].length; j++){
-            if (this.matrix[i][j]){
-
-                this.matrix[i][j].y = this.matrix[i][j].y + offset;
-
-            }
+            rotatedMatrix[j][this.matrix.length - i - 1] = this.matrix[i][j];
         }
     }
+
+    this.matrix = rotatedMatrix;
+
+    this.normalize();
+    this.refreshRectCoords();
 
     this.drawAllRect();
 
 };
 
-Figure.prototype.moveHorizontal = function(offset){
+Figure.prototype.move = function(moveParams){
 
-    offset = offset || 30;
+    var offsetY = moveParams.offsetY || 1;
+    var directionY = moveParams.directionY || true;
 
-    this.offsetHorizontal += offset;
+    var offsetX = moveParams.offsetX;
+    var directionX = moveParams.directionX;
 
     this.clearAllRect();
 
-    for (var i=0; i<this.matrix.length;i++){
-        for (var j=0; j<this.matrix[i].length; j++){
-            if (this.matrix[i][j]){
+    if (directionX === true) {
+        this.absoluteX += offsetX;
+    } else if (directionX === false) {
+        this.absoluteX -= offsetX;
+    } else if (directionY) this.absoluteY += offsetY;
 
-                this.matrix[i][j].x = this.matrix[i][j].x + offset;
-
-            }
-        }
-    }
-
+    this.refreshRectCoords();
     this.drawAllRect();
 
+
 };
+
+Figure.prototype.drop = function(moveParams){
+
+    while (this.checkBottom()){
+        this.move({});
+    }
+
+};
+
+
 
 Figure.prototype.checkBottom = function(){
 
-    var i = this.offsetVertical / 30;
-    var j = this.mediana + this.offsetHorizontal / 30;
-
-    return this.well[i][j] === null;
-
-};
-
-Figure.prototype.getBottomThresholdCoords = function(){
+    var isOk = true;
 
     for (var i = 0; i < 4; i++) {
         for (var j = 0; j < 4; j++) {
-            if (this.matrix[i][j]){
+            if (this.matrix[i][j] &&  !this.matrix[i][j].isEmpty){
 
-                if (this.matrix[i][j].hasOwnProperty('bottomThreshold')){
-                    return [i,j];
+                var x = this.absoluteX+j;
+                var y = this.absoluteY+i+1;
+
+                if (y == 18) {
+
+                    isOk = false;
+                    break;
+
                 }
+
+                var cell = this.well[y][x];
+                isOk = isOk && ! cell
+
+            }
+        }
+    }
+
+    return isOk;
+
+};
+
+Figure.prototype.toWell = function(){
+
+    for (var i = 0; i < 4; i++) {
+        for (var j = 0; j < 4; j++) {
+            if (this.matrix[i][j] && !this.matrix[i][j].isEmpty){
+
+                this.updateWell(this.absoluteY+i, this.absoluteX+j, this.matrix[i][j]);
 
             }
         }
     }
 
 };
+
+
+
 
 function extend(Child, Parent) {
     var F = function() { };
@@ -209,22 +382,28 @@ function I(params){
 
     this.generateMatrix();
 
-    this.matrix[0][0] = new Rect({context: params.context, y:0 + 0 * 30, x:0 + 0 * 30 });
-    this.matrix[1][0] = new Rect({context: params.context, y:0 + 1 * 30, x:0 + 0 * 30 });
-    this.matrix[2][0] = new Rect({context: params.context, y:0 + 2 * 30, x:0 + 0 * 30 });
-    this.matrix[3][0] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 0 * 30 });
+    this.matrix[0][0] = new Rect({context: params.context, y: 0 * 30, x: 0 * 30 });
+    this.matrix[1][0] = new Rect({context: params.context, y: 1 * 30, x: 0 * 30 });
+    this.matrix[2][0] = new Rect({context: params.context, y: 2 * 30, x: 0 * 30 });
+    this.matrix[3][0] = new Rect({context: params.context, y: 3 * 30, x: 0 * 30 });
 
 }
 extend(I, Figure);
 
 function J(params){
 
+    this.reset();
+
     this.generateMatrix();
 
-    this.matrix[3][0] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 0 * 30 });
-    this.matrix[3][1] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 1 * 30 });
-    this.matrix[2][1] = new Rect({context: params.context, y:0 + 2 * 30, x:0 + 1 * 30 });
-    this.matrix[1][1] = new Rect({context: params.context, y:0 + 1 * 30, x:0 + 1 * 30 });
+    this.matrix[3][0] = new Rect({context: params.context });
+    this.matrix[3][1] = new Rect({context: params.context });
+    this.matrix[2][0] = new Rect({isEmpty: true });
+    this.matrix[2][1] = new Rect({context: params.context });
+    this.matrix[1][0] = new Rect({isEmpty: true });
+    this.matrix[1][1] = new Rect({context: params.context });
+
+    this.refreshRectCoords();
 
 }
 extend(J, Figure);
@@ -233,10 +412,10 @@ function L(params){
 
     this.generateMatrix();
 
-    this.matrix[3][1] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 1 * 30 });
-    this.matrix[3][0] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 0 * 30 });
-    this.matrix[2][0] = new Rect({context: params.context, y:0 + 2 * 30, x:0 + 0 * 30 });
-    this.matrix[1][0] = new Rect({context: params.context, y:0 + 1 * 30, x:0 + 0 * 30 });
+    this.matrix[3][1] = new Rect({context: params.context, y: 3 * 30, x: 1 * 30 });
+    this.matrix[3][0] = new Rect({context: params.context, y: 3 * 30, x: 0 * 30 });
+    this.matrix[2][0] = new Rect({context: params.context, y: 2 * 30, x: 0 * 30 });
+    this.matrix[1][0] = new Rect({context: params.context, y: 1 * 30, x: 0 * 30 });
 
 }
 extend(L, Figure);
@@ -245,26 +424,12 @@ function O(params){
 
     this.generateMatrix();
 
-    this.matrix[3][0] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 0 * 30 });
-    this.matrix[3][1] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 1 * 30 });
-    this.matrix[2][0] = new Rect({context: params.context, y:0 + 2 * 30, x:0 + 0 * 30 });
-    this.matrix[2][1] = new Rect({context: params.context, y:0 + 2 * 30, x:0 + 1 * 30 });
+    this.matrix[3][0] = new Rect({context: params.context });
+    this.matrix[3][1] = new Rect({context: params.context });
+    this.matrix[2][0] = new Rect({context: params.context });
+    this.matrix[2][1] = new Rect({context: params.context });
 
-    this.update = function () {
-
-        for (var i = 0; i < 4; i++) {
-            for (var j = 0; j < 4; j++) {
-                if (this.matrix[i][j]){
-
-//                    this.matrix[i][j].clear();
-//                      !!!! TODO!!!!!!!!!!!!!!!!
-
-                }
-            }
-        }
-
-    }
-
+    this.refreshRectCoords();
 
 }
 extend(O, Figure);
@@ -272,10 +437,10 @@ extend(O, Figure);
 function S(params){
     this.generateMatrix();
 
-    this.matrix[3][0] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 0 * 30 });
-    this.matrix[3][1] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 1 * 30 });
-    this.matrix[2][1] = new Rect({context: params.context, y:0 + 2 * 30, x:0 + 1 * 30 });
-    this.matrix[2][2] = new Rect({context: params.context, y:0 + 2 * 30, x:0 + 2 * 30 });
+    this.matrix[3][0] = new Rect({context: params.context, y: 3 * 30, x: 0 * 30 });
+    this.matrix[3][1] = new Rect({context: params.context, y: 3 * 30, x: 1 * 30 });
+    this.matrix[2][1] = new Rect({context: params.context, y: 2 * 30, x: 1 * 30 });
+    this.matrix[2][2] = new Rect({context: params.context, y: 2 * 30, x: 2 * 30 });
 }
 extend(S, Figure);
 
@@ -283,10 +448,10 @@ function T(params){
 
     this.generateMatrix();
 
-    this.matrix[3][0] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 0 * 30 });
-    this.matrix[3][1] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 1 * 30 });
-    this.matrix[3][2] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 2 * 30 });
-    this.matrix[2][1] = new Rect({context: params.context, y:0 + 2 * 30, x:0 + 1 * 30 });
+    this.matrix[3][0] = new Rect({context: params.context});
+    this.matrix[3][1] = new Rect({context: params.context});
+    this.matrix[3][2] = new Rect({context: params.context});
+    this.matrix[2][1] = new Rect({context: params.context});
 
 }
 extend(T, Figure);
@@ -295,10 +460,10 @@ function Z(params){
 
     this.generateMatrix();
 
-    this.matrix[3][1] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 1 * 30 });
-    this.matrix[3][2] = new Rect({context: params.context, y:0 + 3 * 30, x:0 + 2 * 30 });
-    this.matrix[2][0] = new Rect({context: params.context, y:0 + 2 * 30, x:0 + 0 * 30 });
-    this.matrix[2][1] = new Rect({context: params.context, y:0 + 2 * 30, x:0 + 1* 30 });
+    this.matrix[3][1] = new Rect({context: params.context, y: 3 * 30, x: 1 * 30 });
+    this.matrix[3][2] = new Rect({context: params.context, y: 3 * 30, x: 2 * 30 });
+    this.matrix[2][0] = new Rect({context: params.context, y: 2 * 30, x: 0 * 30 });
+    this.matrix[2][1] = new Rect({context: params.context, y: 2 * 30, x: 1* 30 });
 
 }
 extend(Z, Figure);
