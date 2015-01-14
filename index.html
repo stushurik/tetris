@@ -3,10 +3,53 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title></title>
+
+    <script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+
     <script src="tetris.js"></script>
 </head>
 <body>
-    <canvas id="well" height='540' width='300' style="border:1px solid #000000;" tabindex='1' >Обновите браузер</canvas>
+
+<div class="container">
+
+    <div class="row">
+
+        <div class="col-md-5"></div>
+        <div class="col-md-5">
+
+            <h1 class="center-block">TETЯIS</h1>
+
+         </div>
+        <div class="col-md-2"></div>
+
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+
+            To rotate figure press <kbd>&uarr;</kbd> button<br>
+            To move figure left press <kbd>&larr;</kbd> button<br>
+            To move figure right press <kbd>&rarr;</kbd> button<br>
+            To drop figure press <kbd>&darr;</kbd> button<br>
+
+        </div>
+        <div class="col-md-4"><canvas id="well" height='540' width='455' style="border:1px solid #000000;" tabindex='1' >Обновите браузер</canvas></div>
+        <div class="col-md-4">
+
+
+        </div>
+    </div>
+
+</div>
 
     <script>
 
@@ -16,13 +59,28 @@
 
         var well = document.getElementById("well");
         var ctx = well.getContext('2d');
+        var canvas = document.getElementById("well");
+
+        ctx.clearRect ( 0 , 0 , canvas.width, canvas.height );
+
+        ctx.beginPath();
+        ctx.moveTo(305,0);
+        ctx.lineTo(305,540);
+        ctx.lineWidth = 3;
+        ctx.stroke();
 
         var figures = [I,J,L,O,T,S,Z];
+
+        var nextFigure = new figures[getRandomInt(0,7)]({context: ctx});
+        var figure = new figures[getRandomInt(0,7)]({context: ctx});
 
 
         var timer = setTimeout(function run() {
 
-            var figure = new figures[getRandomInt(0,6)]({context: ctx});
+            figure = nextFigure;
+            nextFigure = new figures[getRandomInt(0,7)]({context: ctx});
+
+            nextFigure.drawNextAllRect();
 
             var keyboardCallbackFunc = function(event){
 
@@ -42,47 +100,61 @@
 
                 if (event.keyCode == 39) {
 
-                    figure.move({offsetX:1, directionX: true});
+                    if (figure.checkSide(true)) figure.move({offsetX:1, directionX: true});
 
                 }
 
                 if (event.keyCode == 37) {
 
-                    figure.move({offsetX:1, directionX: false});
+                    if (figure.checkSide(false))  figure.move({offsetX:1, directionX: false});
 
                 }
 
             };
 
-            var canvas = document.getElementById("well");
+            canvas.focus();
             canvas.addEventListener( "keydown", keyboardCallbackFunc, true);
 
             figure.drawAllRect();
 
-            function makeStep(){
+            if (figure.checkBottom()) {
 
-                var toRemove = [];
+                function makeStep() {
 
-                if (figure.checkBottom()){
-                    figure.move({});
-                    setTimeout(makeStep, 1000);
-                } else {
-                    figure.toWell();
-                    if (figure.well.checkRows()){
 
-                        figure.well.clearRemovedRect();
-                        figure.well.rebuild();
-                        figure.well.refreshRectCoords();
-                        figure.well.drawAllRect();
+
+                    var toRemove = [];
+
+                    if (figure.checkBottom()) {
+                        figure.move({});
+                        setTimeout(makeStep, 1000);
+                    } else {
+                        figure.toWell();
+                        if (figure.well.checkRows()) {
+
+                            figure.well.clearRemovedRect();
+                            figure.well.rebuild();
+                            figure.well.refreshRectCoords();
+                            figure.well.drawAllRect();
+
+                        }
+
+                            canvas.removeEventListener("keydown", keyboardCallbackFunc, true);
+                            timer = setTimeout(run, 10);
+                            nextFigure.clearNextAllRect();
 
                     }
-
-                    canvas.removeEventListener( "keydown", keyboardCallbackFunc, true);
-                    timer = setTimeout(run, 10);
                 }
-            }
 
-            setTimeout(makeStep, 1000);
+                setTimeout(makeStep, 1000);
+
+
+            } else {
+
+                alert('Game over');
+                clearTimeout(timer);
+
+            }
 
         }, 10);
 
