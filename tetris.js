@@ -4,7 +4,10 @@
 
 
 function Rect(params) {
-    this.color = params.color || 'black';
+    this.fillStyle = params.fillStyle || 'red';
+    this.strokeStyle = params.strokeStyle || 'blue';
+    this.lineWidth = params.lineWidth || 5;
+
     this.x = params.x || 0;
     this.y = params.y|| 0;
     this.width = params.width || 30;
@@ -16,8 +19,14 @@ function Rect(params) {
     this.draw = function()
     {
         if (!this.isEmpty) {
-            this.context.fillStyle = this.color;
+            this.context.fillStyle = this.fillStyle;
             this.context.fillRect(this.x, this.y, this.width, this.height);
+
+            this.context.strokeStyle = this.strokeStyle;
+            this.context.lineWidth  = this.lineWidth;
+            this.context.strokeRect(this.x, this.y, this.width - this.lineWidth, this.height - this.lineWidth);
+
+
         }
     };
 
@@ -25,10 +34,157 @@ function Rect(params) {
 
         if (!this.isEmpty) {
 
-            this.context.clearRect(this.x, this.y, this.width, this.height);
+            this.context.clearRect(this.x - this.lineWidth, this.y - this.lineWidth, this.width + this.lineWidth, this.height + this.lineWidth);
         }
 
     }
+}
+
+function Well(){
+    var well = [];
+    var toRemove = [];
+    var firstEmptyRow = 17;
+
+    for (var i = 0; i < 18; i++) {
+        for (var j = 0, tmp = []; j < 10; j++) {
+            tmp.push(null);
+        }
+        well.push(tmp);
+    }
+
+    this.get = function(i,j) {
+
+        return well[i][j]
+
+    };
+
+    this.getRow = function(i){
+
+        return well[i]
+
+    };
+
+    this.set = function(i,j,data){
+
+        well[i][j] = data;
+
+    };
+
+    this.checkRows = function(){
+
+        var needRebuild = false;
+
+        for (var i=17; i>=0; i--){
+
+            var isFull = well[i].reduce(function(previousValue, currentValue, index) {
+
+                    if (currentValue === null){
+
+                        return currentValue;
+
+                    } else return !!previousValue && !!currentValue;}
+            );
+
+            if (isFull){
+                toRemove.push(i);
+                needRebuild = true;
+            } else if (isFull === null) {
+
+                firstEmptyRow = i;
+                break;
+            }
+
+        }
+
+        return needRebuild;
+
+    };
+
+    this.clearRemovedRect = function(){
+
+        for(var i=0; i<toRemove.length; i++){
+
+            well[toRemove[i]].forEach(function(rect){rect.clear()});
+
+        }
+
+    };
+
+    this.clearAllRect = function(){
+
+        for (var i = 0; i < 18; i++) {
+            for (var j = 0; j < 10; j++) {
+                if (well[i][j]){
+
+                    well[i][j].clear();
+
+                }
+            }
+        }
+
+    };
+
+    this.rebuild = function(indexes){
+
+        this.clearAllRect();
+
+        indexes = indexes || toRemove;
+        indexes = indexes.sort(function(a, b){return -a+b});
+        console.log(indexes);
+
+        var removeRowCount = indexes.length;
+
+        for(var i = 0; i<indexes.length; i++){
+
+            well.splice(indexes[i],1);
+
+        }
+
+        for (i=0; i<removeRowCount; i++){
+
+            var tmp = [];
+            for(var j=0; j<10;j++){
+
+                tmp.push(null);
+
+            }
+
+            well.unshift(tmp)
+        }
+
+        toRemove = [];
+
+    };
+
+    this.refreshRectCoords = function(){
+
+        for (var i = 0; i < 18; i++) {
+            for (var j = 0; j < 10; j++) {
+                if (well[i][j]){
+
+                    well[i][j].x = j * 30;
+                    well[i][j].y = i * 30;
+
+                }
+            }
+        }
+
+    };
+
+    this.drawAllRect = function(){
+
+        for (var i = 0; i < 18; i++) {
+            for (var j = 0; j < 10; j++) {
+                if (well[i][j]){
+
+                    well[i][j].draw();
+
+                }
+            }
+        }
+
+    };
+
 }
 
 function Figure(params) {
@@ -37,22 +193,7 @@ function Figure(params) {
 
 Figure.prototype.absoluteX = 4;
 Figure.prototype.absoluteY = 0;
-
-Figure.prototype.well = [];
-
-for (var i = 0; i < 18; i++) {
-    for (var j = 0, tmp = []; j < 10; j++) {
-        tmp.push(null);
-    }
-    Figure.prototype.well.push(tmp);
-}
-
-Figure.prototype.updateWell = function(i,j,data){
-
-    Figure.prototype.well[i][j] = data;
-
-};
-
+Figure.prototype.well = new Well();
 
 
 Figure.prototype.generateMatrix = function() {
@@ -341,7 +482,7 @@ Figure.prototype.checkBottom = function(){
 
                 }
 
-                var cell = this.well[y][x];
+                var cell = this.well.get(y,x);
                 isOk = isOk && ! cell
 
             }
@@ -358,7 +499,7 @@ Figure.prototype.toWell = function(){
         for (var j = 0; j < 4; j++) {
             if (this.matrix[i][j] && !this.matrix[i][j].isEmpty){
 
-                this.updateWell(this.absoluteY+i, this.absoluteX+j, this.matrix[i][j]);
+                this.well.set(this.absoluteY+i, this.absoluteX+j, this.matrix[i][j]);
 
             }
         }
@@ -381,27 +522,34 @@ function extend(Child, Parent) {
 function I(params){
 
     this.generateMatrix();
+    params['fillStyle'] = 'yellow';
+    params['strokeStyle'] = 'red';
 
-    this.matrix[0][0] = new Rect({context: params.context, y: 0 * 30, x: 0 * 30 });
-    this.matrix[1][0] = new Rect({context: params.context, y: 1 * 30, x: 0 * 30 });
-    this.matrix[2][0] = new Rect({context: params.context, y: 2 * 30, x: 0 * 30 });
-    this.matrix[3][0] = new Rect({context: params.context, y: 3 * 30, x: 0 * 30 });
+    this.matrix[0][0] = new Rect(params);
+    this.matrix[1][0] = new Rect(params);
+    this.matrix[2][0] = new Rect(params);
+    this.matrix[3][0] = new Rect(params);
+
+    this.refreshRectCoords();
 
 }
 extend(I, Figure);
 
 function J(params){
 
+    params['fillStyle'] = 'green';
+    params['strokeStyle'] = 'maroon';
+
     this.reset();
 
     this.generateMatrix();
 
-    this.matrix[3][0] = new Rect({context: params.context });
-    this.matrix[3][1] = new Rect({context: params.context });
+    this.matrix[3][0] = new Rect(params);
+    this.matrix[3][1] = new Rect(params);
     this.matrix[2][0] = new Rect({isEmpty: true });
-    this.matrix[2][1] = new Rect({context: params.context });
+    this.matrix[2][1] = new Rect(params);
     this.matrix[1][0] = new Rect({isEmpty: true });
-    this.matrix[1][1] = new Rect({context: params.context });
+    this.matrix[1][1] = new Rect(params);
 
     this.refreshRectCoords();
 
@@ -410,24 +558,34 @@ extend(J, Figure);
 
 function L(params){
 
+    params['fillStyle'] = 'maroon';
+    params['strokeStyle'] = 'green';
+
     this.generateMatrix();
 
-    this.matrix[3][1] = new Rect({context: params.context, y: 3 * 30, x: 1 * 30 });
-    this.matrix[3][0] = new Rect({context: params.context, y: 3 * 30, x: 0 * 30 });
-    this.matrix[2][0] = new Rect({context: params.context, y: 2 * 30, x: 0 * 30 });
-    this.matrix[1][0] = new Rect({context: params.context, y: 1 * 30, x: 0 * 30 });
+    this.matrix[3][1] = new Rect(params);
+    this.matrix[3][0] = new Rect(params);
+    this.matrix[2][1] = new Rect({isEmpty: true });
+    this.matrix[2][0] = new Rect(params);
+    this.matrix[1][1] = new Rect({isEmpty: true });
+    this.matrix[1][0] = new Rect(params);
+
+    this.refreshRectCoords();
 
 }
 extend(L, Figure);
 
 function O(params){
 
+    params['fillStyle'] = 'silver';
+    params['strokeStyle'] = 'teal';
+
     this.generateMatrix();
 
-    this.matrix[3][0] = new Rect({context: params.context });
-    this.matrix[3][1] = new Rect({context: params.context });
-    this.matrix[2][0] = new Rect({context: params.context });
-    this.matrix[2][1] = new Rect({context: params.context });
+    this.matrix[3][0] = new Rect(params);
+    this.matrix[3][1] = new Rect(params);
+    this.matrix[2][0] = new Rect(params);
+    this.matrix[2][1] = new Rect(params);
 
     this.refreshRectCoords();
 
@@ -437,10 +595,14 @@ extend(O, Figure);
 function S(params){
     this.generateMatrix();
 
-    this.matrix[3][0] = new Rect({context: params.context, y: 3 * 30, x: 0 * 30 });
-    this.matrix[3][1] = new Rect({context: params.context, y: 3 * 30, x: 1 * 30 });
-    this.matrix[2][1] = new Rect({context: params.context, y: 2 * 30, x: 1 * 30 });
-    this.matrix[2][2] = new Rect({context: params.context, y: 2 * 30, x: 2 * 30 });
+    this.matrix[3][0] = new Rect({context: params.context });
+    this.matrix[3][1] = new Rect({context: params.context });
+    this.matrix[3][2] = new Rect({isEmpty: true });
+    this.matrix[2][0] = new Rect({isEmpty: true });
+    this.matrix[2][1] = new Rect({context: params.context });
+    this.matrix[2][2] = new Rect({context: params.context });
+
+    this.refreshRectCoords();
 }
 extend(S, Figure);
 
@@ -451,7 +613,11 @@ function T(params){
     this.matrix[3][0] = new Rect({context: params.context});
     this.matrix[3][1] = new Rect({context: params.context});
     this.matrix[3][2] = new Rect({context: params.context});
+    this.matrix[2][0] = new Rect({isEmpty: true });
     this.matrix[2][1] = new Rect({context: params.context});
+    this.matrix[2][2] = new Rect({isEmpty: true });
+
+    this.refreshRectCoords();
 
 }
 extend(T, Figure);
@@ -460,10 +626,14 @@ function Z(params){
 
     this.generateMatrix();
 
-    this.matrix[3][1] = new Rect({context: params.context, y: 3 * 30, x: 1 * 30 });
-    this.matrix[3][2] = new Rect({context: params.context, y: 3 * 30, x: 2 * 30 });
-    this.matrix[2][0] = new Rect({context: params.context, y: 2 * 30, x: 0 * 30 });
-    this.matrix[2][1] = new Rect({context: params.context, y: 2 * 30, x: 1* 30 });
+    this.matrix[3][0] = new Rect({isEmpty: true });
+    this.matrix[3][1] = new Rect({context: params.context });
+    this.matrix[3][2] = new Rect({context: params.context });
+    this.matrix[2][0] = new Rect({context: params.context });
+    this.matrix[2][1] = new Rect({context: params.context });
+    this.matrix[2][2] = new Rect({isEmpty: true });
+
+    this.refreshRectCoords();
 
 }
 extend(Z, Figure);

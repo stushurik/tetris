@@ -68,36 +68,12 @@
                     setTimeout(makeStep, 1000);
                 } else {
                     figure.toWell();
+                    if (figure.well.checkRows()){
 
-                    (function(){
-
-                        for (var i=17; i>=0; i--){
-
-                            var isFull = true;
-
-                            for (var j=0; j<10; j++){
-
-                                var cell = figure.well[i][j];
-                                isFull = isFull && cell
-
-                            }
-
-                            if (isFull){
-                               toRemove.push(i);
-                               for (var k=0; k<10; k++){
-
-                                   figure.well[i][k].clear();
-
-                               }
-                            }
-
-                        }
-
-                    })();
-
-                    if (toRemove.length){
-
-
+                        figure.well.clearRemovedRect();
+                        figure.well.rebuild();
+                        figure.well.refreshRectCoords();
+                        figure.well.drawAllRect();
 
                     }
 
@@ -106,7 +82,7 @@
                 }
             }
 
-            makeStep();
+            setTimeout(makeStep, 1000);
 
         }, 10);
 
