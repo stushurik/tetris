@@ -15,9 +15,37 @@
     <!-- Latest compiled and minified JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
 
+    <script src="jquery.couch.js"></script>
+
     <script src="tetris.js"></script>
 </head>
+
+
+<style>
+
+    body { padding-top: 70px; }
+
+
+</style>
+
 <body>
+
+<nav class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+        <form id="loginForm" class="navbar-form navbar-left" >
+            <div class="form-group">
+
+                Enter you <input type="text" class="form-control" placeholder="Login"> and
+                <input type="password" class="form-control" placeholder="Password">, check
+
+                <input type="checkbox" class="form-control" > to sign up first time.
+            </div>
+
+            <button id="login" type="submit" class="btn btn-small">Submit</button>
+
+        </form>
+    </div>
+</nav>
 
 <div class="container">
 
@@ -36,13 +64,28 @@
     <div class="row">
         <div class="col-md-4">
 
-            To rotate figure press <kbd>&uarr;</kbd> button<br>
-            To move figure left press <kbd>&larr;</kbd> button<br>
-            To move figure right press <kbd>&rarr;</kbd> button<br>
-            To drop figure press <kbd>&darr;</kbd> button<br>
+            To rotate figure press <kbd>&uarr;</kbd> key<br>
+            To move figure left press <kbd>&larr;</kbd> key<br>
+            To move figure right press <kbd>&rarr;</kbd> key<br>
+            To drop figure press <kbd>&darr;</kbd> key<br>
+            To pause game press <kbd>P</kbd> key or click "Pause" <br><br>
+
+            For 1 line yor get <mark>100</mark> points;<br>
+            For 2 line yor get <mark>200</mark> points;<br>
+            For 3 line yor get <mark>400</mark> points;<br>
+            For 4 line yor get <mark>800</mark> points;<br><br>
+
+            <button type="button" id="start" data-loading-text="running..." class="btn btn-primary" autocomplete="off">
+                Start game
+            </button>
+
+            <button type="button" id="pause" class="btn btn-primary" autocomplete="off">
+                Pause
+            </button>
+
 
         </div>
-        <div class="col-md-4"><canvas id="well" height='540' width='455' style="border:1px solid #000000;" tabindex='1' >Обновите браузер</canvas></div>
+        <div class="col-md-4"><canvas id="well" height='540' width='455' style="border:1px solid #000000;" tabindex='1' >Update your browser</canvas></div>
         <div class="col-md-4">
 
 
@@ -53,38 +96,46 @@
 
     <script>
 
+        function Time () {
+
+            var seconds = 0;
+
+            this.tick = function(){
+
+                seconds++;
+
+            };
+
+            this.getTime = function(){
+
+              return [Math.floor(seconds/60), seconds % 60];
+
+            };
+
+            this.reset = function (){
+
+                seconds = 0;
+
+            }
+
+        }
+
+
         function getRandomInt(min, max) {
             return Math.floor(Math.random() * (max - min)) + min;
         }
 
-        var well = document.getElementById("well");
+        var well = jQuery("#well")[0];
         var ctx = well.getContext('2d');
-        var canvas = document.getElementById("well");
-
-        ctx.clearRect ( 0 , 0 , canvas.width, canvas.height );
-
-        ctx.beginPath();
-        ctx.moveTo(305,0);
-        ctx.lineTo(305,540);
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
+        var pause = false;
         var figures = [I,J,L,O,T,S,Z];
 
-        var nextFigure = new figures[getRandomInt(0,7)]({context: ctx});
-        var figure = new figures[getRandomInt(0,7)]({context: ctx});
+        function run(nextFigure, btn, timer, time, score) {
 
-
-        var timer = setTimeout(function run() {
-
-            figure = nextFigure;
-            nextFigure = new figures[getRandomInt(0,7)]({context: ctx});
-
-            nextFigure.drawNextAllRect();
-
-            var keyboardCallbackFunc = function(event){
+            var keyboardCallbackFunc = function (event) {
 
                 event.stopImmediatePropagation();
+
 
                 if (event.keyCode == 38) {
 
@@ -100,63 +151,183 @@
 
                 if (event.keyCode == 39) {
 
-                    if (figure.checkSide(true)) figure.move({offsetX:1, directionX: true});
+                    if (figure.checkSide(true)) figure.move({offsetX: 1, directionX: true});
 
                 }
 
                 if (event.keyCode == 37) {
 
-                    if (figure.checkSide(false))  figure.move({offsetX:1, directionX: false});
+                    if (figure.checkSide(false))  figure.move({offsetX: 1, directionX: false});
 
                 }
 
             };
 
-            canvas.focus();
-            canvas.addEventListener( "keydown", keyboardCallbackFunc, true);
+            if (!pause) {
+                var figure = nextFigure;
+                nextFigure = new figures[getRandomInt(0, 7)]({context: ctx});
 
-            figure.drawAllRect();
+                nextFigure.drawNextAllRect();
 
-            if (figure.checkBottom()) {
+                well.focus();
+                well.addEventListener("keydown", keyboardCallbackFunc, true);
 
-                function makeStep() {
+                figure.drawAllRect();
+
+                if (figure.checkBottom()) {
+
+                    function makeStep() {
+
+                        if (!pause) {
+
+                            var toRemove = [];
+
+                            if (figure.checkBottom()) {
+
+                                figure.move({});
+
+                            } else {
+                                figure.toWell();
+                                if (figure.well.checkRows()) {
+
+                                    figure.well.clearRemovedRect();
+                                    var count = figure.well.rebuild();
+                                    score += 100 * Math.pow(2, count - 1);
+
+                                    figure.well.refreshRectCoords();
+                                    figure.well.drawAllRect();
+
+                                    ctx.clearRect(335, 400, 120, 100);
+                                    ctx.fillStyle = "black";
+                                    ctx.strokeStyle = "black";
+                                    ctx.fillText('' + score, 335, 435);
+
+                                }
+
+                                well.removeEventListener("keydown", keyboardCallbackFunc, true);
+                                nextFigure.clearNextAllRect();
+                                timer = setTimeout(function () {
+                                    run(nextFigure, btn, timer, time, score);
+                                }, 10);
+
+                                return
 
 
-
-                    var toRemove = [];
-
-                    if (figure.checkBottom()) {
-                        figure.move({});
-                        setTimeout(makeStep, 1000);
-                    } else {
-                        figure.toWell();
-                        if (figure.well.checkRows()) {
-
-                            figure.well.clearRemovedRect();
-                            figure.well.rebuild();
-                            figure.well.refreshRectCoords();
-                            figure.well.drawAllRect();
-
+                            }
                         }
 
-                            canvas.removeEventListener("keydown", keyboardCallbackFunc, true);
-                            timer = setTimeout(run, 10);
-                            nextFigure.clearNextAllRect();
+                        setTimeout(makeStep, 1000);
+
+                        ctx.fillStyle = "black";
+                        ctx.strokeStyle = "black";
+                        ctx.clearRect(335, 270, 120, 100);
+                        ctx.fillText(time.getTime()[0] + ":" + time.getTime()[1], 335, 305);
+                        time.tick();
 
                     }
+
+                    setTimeout(makeStep, 1000)
+
+                } else {
+
+                    alert('Game over');
+                    clearTimeout(timer);
+                    btn.button('reset')
+
                 }
-
-                setTimeout(makeStep, 1000);
-
-
-            } else {
-
-                alert('Game over');
-                clearTimeout(timer);
-
             }
 
-        }, 10);
+        }
+
+
+        function startGame(btn) {
+
+            ctx.clearRect ( 0 , 0 , well.width, well.height );
+
+            ctx.beginPath();
+            ctx.moveTo(305,0);
+            ctx.lineTo(305,540);
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.fillStyle = "black";
+            ctx.strokeStyle = "black";
+            ctx.font = "italic 30pt Arial";
+
+            ctx.fillText("Time", 335, 270);
+            ctx.fillText("Score", 335, 400);
+            ctx.fillText('0', 335, 435);
+
+
+            var nextFigure = new figures[getRandomInt(0,7)]({context: ctx});
+            nextFigure.well.reset();
+
+            var time = new Time();
+            var score = 0;
+
+            var timer = setTimeout(function(){run(nextFigure, btn, timer, time, score);}, 10);
+        }
+
+        jQuery('#pause').hide();
+        jQuery('#pause').on('click', function () {
+
+            pause = ~pause;
+            well.focus();
+
+        });
+        jQuery('#start').on('click', function () {
+            var $btn = $(this).button('loading');
+            startGame($btn);
+            jQuery('#pause').show();
+
+            var pauseCallback = function (event) {
+
+                if (event.keyCode == 80) {
+
+                    pause = ~pause;
+                    well.focus();
+
+                    event.stopImmediatePropagation();
+
+                }
+
+
+            };
+
+            jQuery(document)[0].addEventListener("keydown",pauseCallback, true);
+        });
+
+        jQuery('#login').on('click', function () {
+
+            var db = jQuery.couch.db(user_db);
+            // insert the doc into the db
+
+            db.
+
+            db.saveDoc(doc, {
+                success: function(response, textStatus, jqXHR){
+                    // do something if the save works
+                },
+                error: function(jqXHR, textStatus, errorThrown){
+                    //do something else if it goes wrong
+                }
+            })
+
+        });
+
+        jQuery.couch.urlPrefix = 'https://shurik.cloudant.com';
+
+
+//        jQuery.couch.login({
+//            name: "frowlandectentlyinglendi",
+//            password: "supersecurepassword",
+//            success: function(data) {
+//                console.log(data);
+//            },
+//            error: function(status) {
+//                console.log(status);
+//            }
+//        });
 
     </script>
 </body>

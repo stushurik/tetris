@@ -75,13 +75,6 @@ function Well(){
     var toRemove = [];
     var firstEmptyRow = 17;
 
-    for (var i = 0; i < 18; i++) {
-        for (var j = 0, tmp = []; j < 10; j++) {
-            tmp.push(null);
-        }
-        well.push(tmp);
-    }
-
     this.getEmptyRowIndex = function() {
 
         return firstEmptyRow
@@ -190,6 +183,8 @@ function Well(){
 
         toRemove = [];
 
+        return removeRowCount
+
     };
 
     this.refreshRectCoords = function(){
@@ -217,6 +212,17 @@ function Well(){
 
                 }
             }
+        }
+
+    };
+
+    this.reset = function(){
+
+        for (var i = 0; i < 18; i++) {
+            for (var j = 0, tmp = []; j < 10; j++) {
+                tmp.push(null);
+            }
+            well.push(tmp);
         }
 
     };
