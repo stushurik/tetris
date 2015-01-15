@@ -218,6 +218,8 @@ function Well(){
 
     this.reset = function(){
 
+        well = [];
+
         for (var i = 0; i < 18; i++) {
             for (var j = 0, tmp = []; j < 10; j++) {
                 tmp.push(null);

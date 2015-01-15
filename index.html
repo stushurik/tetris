@@ -98,7 +98,11 @@
 
         function Time () {
 
+            var speed = 1000;
+
             var seconds = 0;
+
+            var start = new Date();
 
             this.tick = function(){
 
@@ -108,13 +112,27 @@
 
             this.getTime = function(){
 
-              return [Math.floor(seconds/60), seconds % 60];
+              seconds = ((new Date()).getTime() - start.getTime()) / 1000;
+
+              return [Math.floor(seconds/60), Math.ceil(seconds % 60)];
 
             };
 
             this.reset = function (){
 
                 seconds = 0;
+
+            };
+
+            this.getSpeed = function(){
+
+                if (! (seconds / 60 % 2)){
+
+                    speed -= 50;
+
+                }
+
+                return speed
 
             }
 
@@ -131,6 +149,8 @@
         var figures = [I,J,L,O,T,S,Z];
 
         function run(nextFigure, btn, timer, time, score) {
+
+            var figure = nextFigure;
 
             var keyboardCallbackFunc = function (event) {
 
@@ -164,7 +184,7 @@
             };
 
             if (!pause) {
-                var figure = nextFigure;
+
                 nextFigure = new figures[getRandomInt(0, 7)]({context: ctx});
 
                 nextFigure.drawNextAllRect();
@@ -216,20 +236,21 @@
                             }
                         }
 
-                        setTimeout(makeStep, 1000);
+                        setTimeout(makeStep, time.getSpeed());
 
                         ctx.fillStyle = "black";
                         ctx.strokeStyle = "black";
                         ctx.clearRect(335, 270, 120, 100);
                         ctx.fillText(time.getTime()[0] + ":" + time.getTime()[1], 335, 305);
-                        time.tick();
+//                        time.tick();
 
                     }
 
-                    setTimeout(makeStep, 1000)
+                    setTimeout(makeStep, time.getSpeed())
 
                 } else {
 
+                    well.removeEventListener("keydown", keyboardCallbackFunc, true);
                     alert('Game over');
                     clearTimeout(timer);
                     btn.button('reset')
@@ -299,35 +320,23 @@
 
         jQuery('#login').on('click', function () {
 
-            var db = jQuery.couch.db(user_db);
-            // insert the doc into the db
-
-            db.
-
-            db.saveDoc(doc, {
-                success: function(response, textStatus, jqXHR){
-                    // do something if the save works
-                },
-                error: function(jqXHR, textStatus, errorThrown){
-                    //do something else if it goes wrong
-                }
-            })
+//            var db = jQuery.couch.db(user_db);
+//            // insert the doc into the db
+//
+//            db.
+//
+//            db.saveDoc(doc, {
+//                success: function(response, textStatus, jqXHR){
+//                    // do something if the save works
+//                },
+//                error: function(jqXHR, textStatus, errorThrown){
+//                    //do something else if it goes wrong
+//                }
+//            })
 
         });
 
         jQuery.couch.urlPrefix = 'https://shurik.cloudant.com';
-
-
-//        jQuery.couch.login({
-//            name: "frowlandectentlyinglendi",
-//            password: "supersecurepassword",
-//            success: function(data) {
-//                console.log(data);
-//            },
-//            error: function(status) {
-//                console.log(status);
-//            }
-//        });
 
     </script>
 </body>
